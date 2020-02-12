@@ -1,0 +1,52 @@
+{
+    "disable_existing_loggers": true,
+    "formatters": {
+        "json": {
+            "class": "log.JsonFormatter",
+            "datefmt": {
+                "format": "%Y-%m-%dT%H:%M:%S",
+                "milliseconds_required": true
+            },
+            "format": {
+                "file_name": "filename",
+                "function_name": "funcName",
+                "level_name": "levelname",
+                "line_number": "lineno"
+            },
+            "style": "{"
+        },
+        "standard": {
+            "class": "logging.Formatter",
+            "datefmt": "%Y-%m-%dT%H:%M:%S",
+            "format": "{asctime} {levelname} {filename} {funcName} {lineno} {message}",
+            "style": "{"
+        }
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "standard",
+            "level": "WARNING",
+            "stream": "ext://sys.stdout"
+        },
+        "rotate": {
+            "backupCount": 15,
+            "class": "logging.handlers.TimedRotatingFileHandler",
+            "filename": "python-service.log",
+            "formatter": "json",
+            "interval": 1,
+            "level": "DEBUG",
+            "when": "D"
+        }
+    },
+    "loggers": {
+        "": {
+            "handlers": [
+                "console",
+                "rotate"
+            ],
+            "level": "NOTSET"
+        }
+    },
+    "version": 1
+}
