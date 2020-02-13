@@ -1,5 +1,5 @@
 """
-Logging Configuration
+Logging in JSON Format
 """
 
 import json
