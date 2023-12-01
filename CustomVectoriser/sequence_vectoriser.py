@@ -88,6 +88,12 @@ class SequenceVectoriser(sklearn.feature_extraction.text.CountVectorizer):
                  truncation_type: str = "post",
                  quantile: float = 1.0) -> None:
         # pylint: disable=too-many-arguments
+        self.custom_stopwords = custom_stopwords
+        self.maximum_sequence_length = maximum_sequence_length
+        self.pad_type = pad_type
+        self.truncation_type = truncation_type
+        self.quantile = quantile
+
         self.tokens_to_indices = {
             "<PAD>": 0,
             "<OOV>": 1,
@@ -97,18 +103,15 @@ class SequenceVectoriser(sklearn.feature_extraction.text.CountVectorizer):
         self.indices_to_tokens = {
             index: token for token, index in self.tokens_to_indices.items()
         }
-        self.maximum_sequence_length = maximum_sequence_length
-        self.pad_type = pad_type
-        self.truncation_type = truncation_type
-        self.quantile = quantile
+        self.number_of_predefined_tokens = len(self.tokens_to_indices)
 
-        super().__init__(lowercase=False,
-                         preprocessor=functools.partial(
-                             custom_preprocessor,
-                             custom_stopwords=custom_stopwords),
-                         tokenizer=custom_tokenizer,
-                         token_pattern=None,
-                         dtype=numpy.int64)
+        super(SequenceVectoriser, self).__init__(
+            lowercase=False,
+            preprocessor=functools.partial(custom_preprocessor,
+                                           custom_stopwords=custom_stopwords),
+            tokenizer=custom_tokenizer,
+            token_pattern=None,
+            dtype=numpy.int64)
 
     def fit(self, raw_documents: typing.List[str]) -> object:
         """Fit the vectoriser on supplied documents.
@@ -127,8 +130,10 @@ class SequenceVectoriser(sklearn.feature_extraction.text.CountVectorizer):
         super().fit(raw_documents)
 
         for word, index in self.vocabulary_.items():
-            self.tokens_to_indices[word] = index + 4
-            self.indices_to_tokens[index + 4] = word
+            self.tokens_to_indices[
+                word] = index + self.number_of_predefined_tokens
+            self.indices_to_tokens[index +
+                                   self.number_of_predefined_tokens] = word
 
         if self.maximum_sequence_length is None:
             transformed_outputs = self.text_to_word_sequences(raw_documents)

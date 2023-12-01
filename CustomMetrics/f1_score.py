@@ -32,6 +32,48 @@ class MacroF1ScoreMetric(tensorflow.keras.metrics.Metric):
                                                 dtype=self.dtype),
             ("true_positives", "false_positives", "false_negatives"))
 
+    def get_config(self):
+        """Return the serialisable configurations."""
+        base_configurations = super(MacroF1ScoreMetric, self).get_config()
+        extra_configurations = {
+            "number_of_categories": self.number_of_categories
+        }
+
+        return {**base_configurations, **extra_configurations}
+
+    def reset_states(self) -> None:
+        """Reset the variables at the end of an epoch."""
+        tensorflow.keras.backend.batch_set_value([
+            (variable, tensorflow.zeros((self.number_of_categories,)))
+            for variable in self.variables
+        ])
+
+    def result(self) -> tensorflow.Tensor:
+        """Calculate F1 scores for each class and return pooled F1 score after macro-averaging.
+
+        Returns
+        -------
+        tensorflow.float64
+            pooled F1 score
+        """
+        precisions = tensorflow.math.divide_no_nan(
+            self.true_positives,
+            tensorflow.math.add(self.true_positives, self.false_positives))
+        recalls = tensorflow.math.divide_no_nan(
+            self.true_positives,
+            tensorflow.math.add(self.true_positives, self.false_negatives))
+
+        # TODO add support for weighted harmonic mean of precision and recall
+        f1_scores = tensorflow.math.divide_no_nan(
+            tensorflow.math.scalar_mul(
+                2, tensorflow.math.multiply(precisions, recalls)),
+            tensorflow.math.add(precisions, recalls))
+
+        # TODO add support for weighted average of f1 scores for each class
+        macro_f1_score = tensorflow.math.reduce_mean(f1_scores)
+
+        return macro_f1_score
+
     def update_state(self,
                      y_true: tensorflow.Tensor,
                      y_pred: tensorflow.Tensor,
@@ -71,36 +113,3 @@ class MacroF1ScoreMetric(tensorflow.keras.metrics.Metric):
         self.false_positives.assign_add(column_sums - diagonals)
         # belongs to positive class, but not predicted so
         self.false_negatives.assign_add(row_sums - diagonals)
-
-    def result(self) -> tensorflow.float64:
-        """Calculate F1 scores for each class and return pooled F1 score after macro-averaging.
-
-        Returns
-        -------
-        tensorflow.float64
-            pooled F1 score
-        """
-        precisions = tensorflow.math.divide_no_nan(
-            self.true_positives,
-            tensorflow.math.add(self.true_positives, self.false_positives))
-        recalls = tensorflow.math.divide_no_nan(
-            self.true_positives,
-            tensorflow.math.add(self.true_positives, self.false_negatives))
-
-        # TODO add support for weighted harmonic mean of precision and recall
-        f1_scores = tensorflow.math.divide_no_nan(
-            tensorflow.math.scalar_mul(
-                2, tensorflow.math.multiply(precisions, recalls)),
-            tensorflow.math.add(precisions, recalls))
-
-        # TODO add support for weighted average of f1 scores for each class
-        macro_f1_score = tensorflow.math.reduce_mean(f1_scores)
-
-        return macro_f1_score
-
-    def reset_states(self) -> None:
-        """Reset the variables at the end of an epoch."""
-        tensorflow.keras.backend.batch_set_value([
-            (variable, tensorflow.zeros((self.number_of_categories,)))
-            for variable in self.variables
-        ])
