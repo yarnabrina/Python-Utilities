@@ -1,6 +1,4 @@
-"""
-Logging in JSON Format
-"""
+"""Logging in JSON Format."""
 
 import json
 import logging
@@ -23,25 +21,19 @@ ALLOWED_ATTRIBUTES = {
     "processName": "s",
     "relativeCreated": "d",
     "thread": "d",
-    "threadName": "s"
+    "threadName": "s",
 }
 STYLE_GENERATOR = {
-    "$":
-        lambda attributes: ":".join(f"${{{attribute}}}"
-                                    for attribute in attributes),
-    "%":
-        lambda attributes: ":".join(
-            f"%({attribute}){ALLOWED_ATTRIBUTES[attribute]}"
-            for attribute in attributes),
-    "{":
-        lambda attributes: ":".join(f"{{{attribute}}}"
-                                    for attribute in attributes)
+    "$": lambda attributes: ":".join(f"${{{attribute}}}" for attribute in attributes),
+    "%": lambda attributes: ":".join(
+        f"%({attribute}){ALLOWED_ATTRIBUTES[attribute]}" for attribute in attributes
+    ),
+    "{": lambda attributes: ":".join(f"{{{attribute}}}" for attribute in attributes),
 }
 
 
 class JsonFormatter(logging.Formatter):
-    """
-    Custom logging formatter to log in JSON format
+    """Custom logging formatter to log in JSON format.
 
     Parameters
     ----------
@@ -60,9 +52,12 @@ class JsonFormatter(logging.Formatter):
         unknown attributes are provided to be logged
     """
 
-    def __init__(self, log_details: logging.config.ConvertingDict,
-                 timestamp_details: logging.config.ConvertingDict,
-                 specification_style: str) -> None:
+    def __init__(
+        self,
+        log_details: logging.config.ConvertingDict,
+        timestamp_details: logging.config.ConvertingDict,
+        specification_style: str,
+    ) -> None:
         self.log_details = log_details
         self.timestamp_details = timestamp_details
         self.specification_style = specification_style
@@ -72,24 +67,21 @@ class JsonFormatter(logging.Formatter):
                 f"Invalid Specification Style -> Allowed: {' '.join(STYLE_GENERATOR.keys())}"
             )
 
-        if not set(self.log_details.values()).issubset(
-                ALLOWED_ATTRIBUTES.keys()):
+        if not set(self.log_details.values()).issubset(ALLOWED_ATTRIBUTES.keys()):
             raise ValueError(
                 f"Invalid Log Format -> Allowed Attributes: {' '.join(ALLOWED_ATTRIBUTES.keys())}"
             )
 
         self.log_attritutes = list(self.log_details.values())
-        self.log_style = STYLE_GENERATOR[specification_style](
-            self.log_attritutes)
+        self.log_style = STYLE_GENERATOR[specification_style](self.log_attritutes)
         self.timestamp_format = self.timestamp_details["format"]
 
-        super(JsonFormatter, self).__init__(fmt=self.log_style,
-                                            datefmt=self.timestamp_format,
-                                            style=self.specification_style)
+        super().__init__(
+            fmt=self.log_style, datefmt=self.timestamp_format, style=self.specification_style
+        )
 
     def format(self, record: logging.LogRecord) -> str:
-        """
-        Returns the log in the desired JSON format
+        """Returns the log in the desired JSON format.
 
         Parameters
         ----------
@@ -111,8 +103,7 @@ class JsonFormatter(logging.Formatter):
         log_information["@timestamp"] = timestamp
 
         if record.exc_info:
-            log_information["@exception"] = self.formatException(
-                record.exc_info)
+            log_information["@exception"] = self.formatException(record.exc_info)
         elif record.exc_text:
             log_information["@exception"] = record.exc_text
 
@@ -131,7 +122,7 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(log_information)
 
 
-with open("log_configurations.json", "r") as config_file_name:
+with open("log_configurations.json") as config_file_name:
     LOG_CONFIGS = json.load(config_file_name)
 
 logging.config.dictConfig(LOG_CONFIGS)

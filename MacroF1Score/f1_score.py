@@ -16,37 +16,41 @@ class MacroF1ScoreMetric(tensorflow.keras.metrics.Metric):
         type of the metric, by default tensorflow.float64
     """
 
-    def __init__(self,
-                 number_of_categories: int,
-                 name: str = "f1_macro_score",
-                 dtype: tensorflow.DType = tensorflow.float64) -> None:
-        super(MacroF1ScoreMetric, self).__init__(name=name, dtype=dtype)
+    def __init__(
+        self,
+        number_of_categories: int,
+        name: str = "f1_macro_score",
+        dtype: tensorflow.DType = tensorflow.float64,
+    ) -> None:
+        super().__init__(name=name, dtype=dtype)
 
         self.number_of_categories = number_of_categories
 
         self.true_positives, self.false_positives, self.false_negatives = map(
-            lambda custom_name: self.add_weight(name=custom_name,
-                                                shape=(self.
-                                                       number_of_categories,),
-                                                initializer="zeros",
-                                                dtype=self.dtype),
-            ("true_positives", "false_positives", "false_negatives"))
+            lambda custom_name: self.add_weight(
+                name=custom_name,
+                shape=(self.number_of_categories,),
+                initializer="zeros",
+                dtype=self.dtype,
+            ),
+            ("true_positives", "false_positives", "false_negatives"),
+        )
 
     def get_config(self):
         """Return the serialisable configurations."""
-        base_configurations = super(MacroF1ScoreMetric, self).get_config()
-        extra_configurations = {
-            "number_of_categories": self.number_of_categories
-        }
+        base_configurations = super().get_config()
+        extra_configurations = {"number_of_categories": self.number_of_categories}
 
         return {**base_configurations, **extra_configurations}
 
     def reset_states(self) -> None:
         """Reset the variables at the end of an epoch."""
-        tensorflow.keras.backend.batch_set_value([
-            (variable, tensorflow.zeros((self.number_of_categories,)))
-            for variable in self.variables
-        ])
+        tensorflow.keras.backend.batch_set_value(
+            [
+                (variable, tensorflow.zeros((self.number_of_categories,)))
+                for variable in self.variables
+            ]
+        )
 
     def result(self) -> tensorflow.Tensor:
         """Calculate F1 scores for each class and return pooled F1 score after macro-averaging.
@@ -57,27 +61,29 @@ class MacroF1ScoreMetric(tensorflow.keras.metrics.Metric):
             pooled F1 score
         """
         precisions = tensorflow.math.divide_no_nan(
-            self.true_positives,
-            tensorflow.math.add(self.true_positives, self.false_positives))
+            self.true_positives, tensorflow.math.add(self.true_positives, self.false_positives)
+        )
         recalls = tensorflow.math.divide_no_nan(
-            self.true_positives,
-            tensorflow.math.add(self.true_positives, self.false_negatives))
+            self.true_positives, tensorflow.math.add(self.true_positives, self.false_negatives)
+        )
 
         # TODO add support for weighted harmonic mean of precision and recall
         f1_scores = tensorflow.math.divide_no_nan(
-            tensorflow.math.scalar_mul(
-                2, tensorflow.math.multiply(precisions, recalls)),
-            tensorflow.math.add(precisions, recalls))
+            tensorflow.math.scalar_mul(2, tensorflow.math.multiply(precisions, recalls)),
+            tensorflow.math.add(precisions, recalls),
+        )
 
         # TODO add support for weighted average of f1 scores for each class
         macro_f1_score = tensorflow.math.reduce_mean(f1_scores)
 
         return macro_f1_score
 
-    def update_state(self,
-                     y_true: tensorflow.Tensor,
-                     y_pred: tensorflow.Tensor,
-                     sample_weight: tensorflow.Tensor = None) -> None:
+    def update_state(
+        self,
+        y_true: tensorflow.Tensor,
+        y_pred: tensorflow.Tensor,
+        sample_weight: tensorflow.Tensor = None,
+    ) -> None:
         """Update the variables keeeping track of progress during an epoch.
 
         Parameters
@@ -101,7 +107,8 @@ class MacroF1ScoreMetric(tensorflow.keras.metrics.Metric):
             labels=y_true,
             predictions=y_pred,
             num_classes=self.number_of_categories,
-            dtype=self.dtype)
+            dtype=self.dtype,
+        )
 
         diagonals = tensorflow.linalg.diag_part(confusion_matrix)
         column_sums = tensorflow.math.reduce_sum(confusion_matrix, axis=0)

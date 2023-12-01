@@ -13,8 +13,7 @@ import tensorflow
 
 NLP = spacy.load("en_core_web_sm")
 NLP.Defaults.stop_words.update(nltk.corpus.stopwords.words("english"))
-NLP.Defaults.stop_words.update(
-    sklearn.feature_extraction.text.ENGLISH_STOP_WORDS)
+NLP.Defaults.stop_words.update(sklearn.feature_extraction.text.ENGLISH_STOP_WORDS)
 
 
 def custom_preprocessor(text: str, custom_stopwords: typing.Set[str]) -> str:
@@ -54,12 +53,10 @@ def custom_tokenizer(text: str) -> typing.List[str]:
     """
     tokens = NLP(text)
     useful_tokens = filter(
-        lambda token: not (token.is_currency or token.is_punct or token.is_space
-                           or token.is_stop), tokens)
-    lemmas = [
-        token.lemma_ if token.lemma_ != "-PRON-" else token.text
-        for token in useful_tokens
-    ]
+        lambda token: not (token.is_currency or token.is_punct or token.is_space or token.is_stop),
+        tokens,
+    )
+    lemmas = [token.lemma_ if token.lemma_ != "-PRON-" else token.text for token in useful_tokens]
 
     return lemmas
 
@@ -81,12 +78,14 @@ class SequenceVectoriser(sklearn.feature_extraction.text.CountVectorizer):
         quantile of lengths of training documents to use, by default 0.75
     """
 
-    def __init__(self,
-                 custom_stopwords: typing.Set[str],
-                 maximum_sequence_length: int = None,
-                 pad_type: str = "post",
-                 truncation_type: str = "post",
-                 quantile: float = 1.0) -> None:
+    def __init__(
+        self,
+        custom_stopwords: typing.Set[str],
+        maximum_sequence_length: int = None,
+        pad_type: str = "post",
+        truncation_type: str = "post",
+        quantile: float = 1.0,
+    ) -> None:
         # pylint: disable=too-many-arguments
         self.custom_stopwords = custom_stopwords
         self.maximum_sequence_length = maximum_sequence_length
@@ -94,24 +93,17 @@ class SequenceVectoriser(sklearn.feature_extraction.text.CountVectorizer):
         self.truncation_type = truncation_type
         self.quantile = quantile
 
-        self.tokens_to_indices = {
-            "<PAD>": 0,
-            "<OOV>": 1,
-            "<START>": 2,
-            "<END>": 3
-        }
-        self.indices_to_tokens = {
-            index: token for token, index in self.tokens_to_indices.items()
-        }
+        self.tokens_to_indices = {"<PAD>": 0, "<OOV>": 1, "<START>": 2, "<END>": 3}
+        self.indices_to_tokens = {index: token for token, index in self.tokens_to_indices.items()}
         self.number_of_predefined_tokens = len(self.tokens_to_indices)
 
-        super(SequenceVectoriser, self).__init__(
+        super().__init__(
             lowercase=False,
-            preprocessor=functools.partial(custom_preprocessor,
-                                           custom_stopwords=custom_stopwords),
+            preprocessor=functools.partial(custom_preprocessor, custom_stopwords=custom_stopwords),
             tokenizer=custom_tokenizer,
             token_pattern=None,
-            dtype=numpy.int64)
+            dtype=numpy.int64,
+        )
 
     def fit(self, raw_documents: typing.List[str]) -> object:
         """Fit the vectoriser on supplied documents.
@@ -130,20 +122,16 @@ class SequenceVectoriser(sklearn.feature_extraction.text.CountVectorizer):
         super().fit(raw_documents)
 
         for word, index in self.vocabulary_.items():
-            self.tokens_to_indices[
-                word] = index + self.number_of_predefined_tokens
-            self.indices_to_tokens[index +
-                                   self.number_of_predefined_tokens] = word
+            self.tokens_to_indices[word] = index + self.number_of_predefined_tokens
+            self.indices_to_tokens[index + self.number_of_predefined_tokens] = word
 
         if self.maximum_sequence_length is None:
             transformed_outputs = self.text_to_word_sequences(raw_documents)
-            self.maximum_sequence_length = self.get_pad_length(
-                transformed_outputs)
+            self.maximum_sequence_length = self.get_pad_length(transformed_outputs)
 
         return self
 
-    def get_pad_length(
-            self, transformed_outputs: typing.List[typing.List[int]]) -> int:
+    def get_pad_length(self, transformed_outputs: typing.List[typing.List[int]]) -> int:
         """Determine the uniform length for padding and truncation.
 
         Parameters
@@ -157,16 +145,13 @@ class SequenceVectoriser(sklearn.feature_extraction.text.CountVectorizer):
             uniform length for padding
         """
         document_lengths = numpy.fromiter(
-            (len(transformed_output)
-             for transformed_output in transformed_outputs),
-            dtype=int)
-        document_length_upper_quartile = numpy.quantile(document_lengths,
-                                                        self.quantile)
+            (len(transformed_output) for transformed_output in transformed_outputs), dtype=int
+        )
+        document_length_upper_quartile = numpy.quantile(document_lengths, self.quantile)
 
         return int(document_length_upper_quartile)
 
-    def inverse_transform(self,
-                          indexed_sequences: numpy.ndarray) -> typing.List[str]:
+    def inverse_transform(self, indexed_sequences: numpy.ndarray) -> typing.List[str]:
         """Convert integer sequences to space separated tokens.
 
         Parameters
@@ -184,14 +169,13 @@ class SequenceVectoriser(sklearn.feature_extraction.text.CountVectorizer):
         for indexed_sequence in indexed_sequences:
             recovered_tokens = filter(
                 lambda token: token != "<PAD>",
-                operator.itemgetter(*indexed_sequence)(self.indices_to_tokens))
+                operator.itemgetter(*indexed_sequence)(self.indices_to_tokens),
+            )
             recovered_texts.append(" ".join(recovered_tokens))
 
         return recovered_texts
 
-    def pad_sequences(
-            self, transformed_outputs: typing.List[typing.List[int]]
-    ) -> numpy.ndarray:
+    def pad_sequences(self, transformed_outputs: typing.List[typing.List[int]]) -> numpy.ndarray:
         """Convert word sequences of varying lengths to uniform length.
 
         Parameters
@@ -209,13 +193,14 @@ class SequenceVectoriser(sklearn.feature_extraction.text.CountVectorizer):
             maxlen=self.maximum_sequence_length,
             padding=self.pad_type,
             truncating=self.truncation_type,
-            dtype=self.dtype)
+            dtype=self.dtype,
+        )
 
         return padded_outputs
 
     def text_to_word_sequences(
-            self,
-            raw_documents: typing.List[str]) -> typing.List[typing.List[int]]:
+        self, raw_documents: typing.List[str]
+    ) -> typing.List[typing.List[int]]:
         """Convert texts to integer sequences.
 
         Parameters
@@ -231,10 +216,11 @@ class SequenceVectoriser(sklearn.feature_extraction.text.CountVectorizer):
         analyzer = self.build_analyzer()
         transformed_outputs = []
         for raw_document in raw_documents:
-            transformed_output = [2] + [
-                self.tokens_to_indices.get(feature, 1)
-                for feature in analyzer(raw_document)
-            ] + [3]
+            transformed_output = (
+                [2]
+                + [self.tokens_to_indices.get(feature, 1) for feature in analyzer(raw_document)]
+                + [3]
+            )
             transformed_outputs.append(transformed_output)
 
         return transformed_outputs
