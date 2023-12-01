@@ -5,7 +5,6 @@ Logging in JSON Format
 import json
 import logging
 import logging.config
-import pathlib
 
 ALLOWED_ATTRIBUTES = {
     "asctime": "s",
@@ -135,10 +134,4 @@ class JsonFormatter(logging.Formatter):
 with open("log_configurations.json", "r") as config_file_name:
     LOG_CONFIGS = json.load(config_file_name)
 
-LOG_CONFIGS["handlers"]["rotate"]["filename"] = pathlib.PurePath(
-    pathlib.os.environ.get("LOG_HOME", ""),
-    LOG_CONFIGS["handlers"]["rotate"]["filename"])
-
 logging.config.dictConfig(LOG_CONFIGS)
-
-logging.info("Logging Started")

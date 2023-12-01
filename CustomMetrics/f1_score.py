@@ -1,13 +1,10 @@
-"""
-Custom F1 Score Metric
-"""
+"""F1 score metric for multi-class classification."""
 
 import tensorflow
 
 
 class MacroF1ScoreMetric(tensorflow.keras.metrics.Metric):
-    """
-    Custom metric to find pooled F1 score based on macro averaging over individual class scores
+    """Create a custom metric to find pooled F1 score based on macro averaging.
 
     Parameters
     ----------
@@ -39,8 +36,7 @@ class MacroF1ScoreMetric(tensorflow.keras.metrics.Metric):
                      y_true: tensorflow.Tensor,
                      y_pred: tensorflow.Tensor,
                      sample_weight: tensorflow.Tensor = None) -> None:
-        """
-        Updates the variables keeeping track of progress during an epoch
+        """Update the variables keeeping track of progress during an epoch.
 
         Parameters
         ----------
@@ -51,6 +47,7 @@ class MacroF1ScoreMetric(tensorflow.keras.metrics.Metric):
         sample_weight : tensorflow.Tensor, optional
             weight for each observation, by default None
         """
+        # pylint: disable=arguments-differ
         # TODO add support for sample weights
         del sample_weight  # unused
 
@@ -76,12 +73,12 @@ class MacroF1ScoreMetric(tensorflow.keras.metrics.Metric):
         self.false_negatives.assign_add(row_sums - diagonals)
 
     def result(self) -> tensorflow.float64:
-        """
-        Calculates F1 scores for each class and returns the pooled F1 score after macro-averaging
+        """Calculate F1 scores for each class and return pooled F1 score after macro-averaging.
 
-        Returns:
-            tensorflow.float64
-                -- pooled F1 score
+        Returns
+        -------
+        tensorflow.float64
+            pooled F1 score
         """
         precisions = tensorflow.math.divide_no_nan(
             self.true_positives,
@@ -102,9 +99,7 @@ class MacroF1ScoreMetric(tensorflow.keras.metrics.Metric):
         return macro_f1_score
 
     def reset_states(self) -> None:
-        """
-        Resets the variables at the end of an epoch
-        """
+        """Reset the variables at the end of an epoch."""
         tensorflow.keras.backend.batch_set_value([
             (variable, tensorflow.zeros((self.number_of_categories,)))
             for variable in self.variables
