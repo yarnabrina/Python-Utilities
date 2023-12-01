@@ -1,6 +1,7 @@
 """Filter log records."""
 import dataclasses
 import inspect
+import logging
 
 
 @dataclasses.dataclass

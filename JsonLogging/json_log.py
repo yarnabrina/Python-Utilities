@@ -81,7 +81,7 @@ class JsonFormatter(logging.Formatter):
         )
 
     def format(self, record: logging.LogRecord) -> str:
-        """Returns the log in the desired JSON format.
+        """Return the log in the desired JSON format.
 
         Parameters
         ----------
